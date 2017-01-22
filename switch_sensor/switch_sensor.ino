@@ -20,24 +20,51 @@
 // Configuration
 /*-----------------------------------------------------------------*/
 
-// Define radio type to be used.
-// NOTE: radio definition must be delcared before anything else.
+//  MySensor Library Configuration
+
+//  Define radio type to be used.
+//  NOTE: radio definition must be delcared before anything else.
 #define MY_RADIO_NRF24
 
-// Comment out to disable debugging.
+//  Comment out to disable debugging.
 #define MY_DEBUG
 
-// Enable or disable sensors.
-bool PIR = true;
-bool TEMP = true;
-bool PD = true;
+//  Set node ID
+#define MY_NODE_ID 1
 
-// Select number of switches, max is 3 (limited to three due to board)
-byte NO_OF_SWITCHES = 2;
+//  Set child ID
+#define CHILD_ID_SWITCH_ONE 0
+// #define CHILD_ID_SWITCH_TWO 1
+// #define CHILD_ID_SWITCH_THREE 2
+#define CHILD_ID_PD 3 //  photodiode
+#define CHILD_ID_PIR 4
+#define CHILD_ID_TEMP 5
 
+
+//  Connected sensors configuration
+
+// Due to limited ports on the board, we only support up to three
+// switches here.
+#define SWITCH_ONE A0;
+// #define SWITCH_TWO A1;
+// #define SWITCH_THREE A2;
+#define RELAY_ONE 4
+// #define RELAY_TWO 7
+// #define RELAY_THREE 8
+
+#define PD_PIN = A3;
+
+#define PIR_PIN = A4;
+
+#define TEMP_PIN = A5;
+
+
+/*------------------------------------------------------------------/
+// End Configuration
+/*-----------------------------------------------------------------*/
 
 void setup() {
-  // put your setup code here, to run once:
+  //  put your setup code here, to run once:
 
 }
 
