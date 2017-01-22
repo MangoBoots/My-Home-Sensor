@@ -52,13 +52,15 @@
 // #define RELAY_TWO 7
 // #define RELAY_THREE 8
 
-#define PD_PIN = A3;
+#define PD_PIN A3;
 
-#define PIR_PIN = A4;
+#define PIR_PIN A4;
 
-#define TEMP_PIN = A5;
+#define TEMP_PIN A5;
 
-
+#define RGB_RED_PIN 3
+#define RGB_GREEN_PIN 5 
+#define RGB_BLUE_PIN 6
 /*------------------------------------------------------------------/
 // End Configuration
 /*-----------------------------------------------------------------*/
