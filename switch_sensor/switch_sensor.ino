@@ -55,12 +55,12 @@
 
 #ifdef CHILD_ID_SWITCH_TWO
   #define SWITCH_TWO A1
-  //  #define RELAY_TWO 7
+  #define RELAY_TWO 7
 #endif
 
 #ifdef CHILD_ID_SWITCH_THREE
   #define SWITCH_THREE A2
-  //  #define RELAY_THREE 8
+  #define RELAY_THREE 8
 #endif
 
 
@@ -110,6 +110,8 @@
 // Global Variables
 //-----------------------------------------------------------------*/
 
+int SWITCH_READING;
+
 #ifdef CHILD_ID_SWITCH_ONE
   bool SWITCH_ONE_LIGHT_STATE = LOW;
   bool SWITCH_ONE_STATE = false;
@@ -127,7 +129,8 @@
 #ifdef CHILD_ID_SWITCH_THREE
   bool SWITCH_THREE_LIGHT_STATE = LOW;
   bool SWITCH_TRHEE_STATE = false;
-  float SWITCH_TWO_VOLTAGE;
+  float SWITCH_THREE_VOLTAGE;
+  
   MyMessage msgSWITCH_THREE(CHILD_ID_SWITCH_THREE, V_LIGHT);
 #endif
 
@@ -154,7 +157,7 @@
 //  over while it's in use.
 bool RGB_IN_USE;
 byte SWITCH_RGB_TIME_REMAINING;
-byte SWITCH_RGB_CYCLES = 2000;
+unsigned int SWITCH_RGB_CYCLES = 2000;
 
 /*------------------------------------------------------------------/
 // End Global Variables
@@ -231,5 +234,88 @@ void setup()
 
 void loop()
 {
+  #ifdef CHILD_ID_SWITCH_ONE
+    SWITCH_READING = analogRead(SWITCH_ONE);
+    SWITCH_ONE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
+    
+    if(SWITCH_ONE_VOLTAGE < 4.0)
+    {
+      if(SWITCH_ONE_STATE == false)
+      {
+        RGB_IN_USE = true;
+        SWITCH_ONE_STATE = true;
+        if(SWITCH_ONE_LIGHT_STATE == HIGH)
+        {
+          SWITCH_ONE_LIGHT_STATE = LOW;
+        }
+        else
+        {
+          SWITCH_ONE_LIGHT_STATE = HIGH;
+        }
+      }
+    }
+    if(SWITCH_ONE_VOLTAGE > 4.0)
+    {
+      SWITCH_ONE_STATE = false;
+    }
+  #endif
+  
+  #ifdef CHILD_ID_SWITCH_TWO
+    SWITCH_READING = analogRead(SWITCH_TWO);
+    SWITCH_TWO_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
+      
+    if(SWITCH_TWO_VOLTAGE < 4.0)
+    {
+      if(SWITCH_TWO_STATE == false)
+      {
+        RGB_IN_USE = true;
+        SWITCH_TWO_STATE = true;
+        if(SWITCH_TWO_LIGHT_STATE == HIGH)
+        {
+          SWITCH_TWO_LIGHT_STATE = LOW;
+        }
+        else
+        {
+          SWITCH_TWO_LIGHT_STATE = HIGH;
+        }
+      }
+    }
+    if(SWITCH_TWO_VOLTAGE > 4.0)
+    {
+      SWITCH_TWO_STATE = false;
+    }
+    
+  #endif
+  
+  #ifdef CHILD_ID_SWITCH_THREE
+    SWITCH_READING = analogRead(SWITCH_THREE);
+    SWITCH_THREE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
+    
+    if(SWITCH_THREE_VOLTAGE < 4.0)
+    {
+      if(SWITCH_THREE_STATE == false)
+      {
+        RGB_IN_USE = true;
+        SWITCH_THREE_STATE = true;
+        if(SWITCH_THREE_LIGHT_STATE == HIGH)
+        {
+          SWITCH_THREE_LIGHT_STATE = LOW;
+        }
+        else
+        {
+          SWITCH_THREE_LIGHT_STATE = HIGH;
+        }
+      }
+    }
+    if(SWITCH_THREE_VOLTAGE > 4.0)
+    {
+      SWITCH_THREE_STATE = false;
+    }
+  #endif
 
+
+
+
+
+  
 }
