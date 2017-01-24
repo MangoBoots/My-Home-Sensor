@@ -149,6 +149,22 @@
   MyMessage msgTEMP(CHILD_ID_TEMP, V_TEMP);
 #endif
 
+//  Since the light switches will use the RGB light for a short period
+//  we need to make sure that the temperature sensor doesn't try take
+//  over while it's in use.
+bool RGB_IN_USE;
+byte SWITCH_RGB_TIME_REMAINING;
+byte SWITCH_RGB_CYCLES = 2000;
+
+/*------------------------------------------------------------------/
+// End Global Variables
+//-----------------------------------------------------------------*/
+
+
+/*------------------------------------------------------------------/
+// Functions
+//-----------------------------------------------------------------*/
+
 //  Present sensors and switches to gateway - controller.
 void present()
 {
