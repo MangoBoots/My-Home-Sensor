@@ -49,31 +49,31 @@
 //  Due to limited ports on the board, we can only use three
 //  switches here.
 #ifdef CHILD_ID_SWITCH_ONE
-  #define SWITCH_ONE A0;
+  #define SWITCH_ONE A0
   #define RELAY_ONE 4
 #endif
 
 #ifdef CHILD_ID_SWITCH_TWO
-  #define SWITCH_TWO A1;
+  #define SWITCH_TWO A1
   //  #define RELAY_TWO 7
 #endif
 
 #ifdef CHILD_ID_SWITCH_THREE
-  #define SWITCH_THREE A2;
+  #define SWITCH_THREE A2
   //  #define RELAY_THREE 8
 #endif
 
 
 #ifdef CHILD_ID_PD
-  #define PD_PIN A3;
+  #define PD_PIN A3
 #endif
 
 #ifdef CHILD_ID_PIR
-  #define PIR_PIN A4;
+  #define PIR_PIN A4
 #endif
 
 #ifdef CHILD_ID_TEMP
-  #define TEMP_PIN A5;
+  #define TEMP_PIN A5
 #endif
 
 #define RGB_RED_PIN 3
@@ -180,7 +180,7 @@ void present()
 
 void setup()
 { 
-  pinMode(RBG_RED_PIN, OUTPUT);
+  pinMode(RGB_RED_PIN, OUTPUT);
   pinMode(RGB_GREEN_PIN, OUTPUT);
   pinMode(RGB_BLUE_PIN, OUTPUT);
   
@@ -200,7 +200,7 @@ void setup()
   #endif
 
   #ifdef CHILD_ID_PIR
-    pinMode(PID_PIN, INPUT);
+    pinMode(PIR_PIN, INPUT);
   #endif
 
   #ifdef CHILD_ID_PD
