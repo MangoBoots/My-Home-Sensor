@@ -83,6 +83,7 @@
 //  Force a reading update to be sent to the gateway after N amount
 //  of reads to prevent overly long time periods between updates from
 //  being sent.
+// Max is 250
 #define FORCE_UPDATE_AFTER_N_READS 200
 
 //  Number of cycles before trying to grab readings from temp sensor
@@ -148,16 +149,25 @@ int SWITCH_READING;
 
 #ifdef CHILD_ID_TEMP
   float TEMP_PREVIOUS_VALUE;
+  float TEMP_CURRENT_VALUE;
   byte TEMP_COUNTS_SINCE_LAST_SEND;
   MyMessage msgTEMP(CHILD_ID_TEMP, V_TEMP);
+  OneWire oneWire(TEMP_PIN);
+  DallasTemperature sensors(&oneWire);
 #endif
 
 //  Since the light switches will use the RGB light for a short period
 //  we need to make sure that the temperature sensor doesn't try take
 //  over while it's in use.
-bool RGB_IN_USE;
-byte SWITCH_RGB_TIME_REMAINING;
-unsigned int SWITCH_RGB_CYCLES = 2000;
+  bool RGB_IN_USE;
+  byte SWITCH_RGB_TIME_REMAINING;
+  unsigned int SWITCH_RGB_CYCLES = 2000;
+
+//  We use the cycles counter because we only want to check the readings
+//  of the temperature sensor and the photodiode every 2000 cycles.
+#if defined CHILD_ID_PD || defined CHILD_ID_TEMP
+  int CYCLES_COUNTER;
+#endif
 
 /*------------------------------------------------------------------/
 // End Global Variables
@@ -252,6 +262,10 @@ void loop()
         {
           SWITCH_ONE_LIGHT_STATE = HIGH;
         }
+        #ifdef MY_DEBUG
+          Serial.println("Switching Relay ONE state, new state:");
+          Serial.println(SWITCH_TWO_LIGHT_STATE);
+        #endif
         digitalWrite(SWITCH_ONE, SWITCH_ONE_LIGHT_STATE);
       }
     }
@@ -279,6 +293,10 @@ void loop()
         {
           SWITCH_TWO_LIGHT_STATE = HIGH;
         }
+        #ifdef MY_DEBUG
+          Serial.println("Switching Relay TWO state, new state:");
+          Serial.println(SWITCH_TWO_LIGHT_STATE);
+        #endif
         digitalWrite(SWITCH_TWO, SWITCH_TWO_LIGHT_STATE);
       }
     }
@@ -307,6 +325,10 @@ void loop()
         {
           SWITCH_THREE_LIGHT_STATE = HIGH;
         }
+        #ifdef MY_DEBUG
+          Serial.println("Switching Relay THREE state, new state:");
+          Serial.println(SWITCH_THREE_LIGHT_STATE);
+        #endif
         digitalWrite(SWITCH_THREE, SWITCH_THREE_LIGHT_STATE);
       }
     }
@@ -315,9 +337,52 @@ void loop()
       SWITCH_THREE_STATE = false;
     }
   #endif
+  
+  #if defined CHILD_ID_TEMP || defined CHILD_ID_PD
+    if(CYCLES_COUNTER >= CYCLES_PER_READ)
+    {
+      CYCLES_COUNTER = 0;
+      #ifdef CHILD_ID_TEMP
+        sensors.requestTemperatures();
+        TEMP_CURRENT_VALUE = sensors.getTempCByIndex(0);
+        if(TEMP_CURRENT_VALUE != TEMP_PREVIOUS_VALUE || TEMP_COUNTS_SINCE_LAST_SEND == FORCE_UPDATE_AFTER_N_READS)
+        {
+          TEMP_PREVIOUS_VALUE = TEMP_CURRENT_VALUE;
+          TEMP_COUNTS_SINCE_LAST_SEND = 0;
+          send(msgTEMP.set(TEMP_CURRENT_VALUE, 1));
+          #ifdef MY_DEBUG
+            Serial.println("Temperature:");
+            Serial.println(TEMP_CURRENT_VALUE);
+          #endif
+        }
+        else
+        {
+          TEMP_COUNTS_SINCE_LAST_SEND++;
+        }
+        if(TEMP_CURRENT_VALUE >= 29.00)
+        {
+          setLed(RGB_RED_PIN);
+        }
+        else if(TEMP_CURRENT_VALUE >= 20.00)
+        {
+          setLed(RGB_GREEN_PIN);
+        }
+        else
+        {
+          setLed(RGB_BLUE_PIN);
+        }
+      #endif
 
-
-
+      #ifdef CHILD_ID_PD
+        
+      #endif
+    }
+    else
+    {
+      CYCLES_COUNTER++;
+    }
+    
+  #endif
 
 
   
