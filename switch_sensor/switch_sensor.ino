@@ -252,6 +252,7 @@ void loop()
         {
           SWITCH_ONE_LIGHT_STATE = HIGH;
         }
+        digitalWrite(SWITCH_ONE, SWITCH_ONE_LIGHT_STATE);
       }
     }
     if(SWITCH_ONE_VOLTAGE > 4.0)
@@ -278,6 +279,7 @@ void loop()
         {
           SWITCH_TWO_LIGHT_STATE = HIGH;
         }
+        digitalWrite(SWITCH_TWO, SWITCH_TWO_LIGHT_STATE);
       }
     }
     if(SWITCH_TWO_VOLTAGE > 4.0)
@@ -305,6 +307,7 @@ void loop()
         {
           SWITCH_THREE_LIGHT_STATE = HIGH;
         }
+        digitalWrite(SWITCH_THREE, SWITCH_THREE_LIGHT_STATE);
       }
     }
     if(SWITCH_THREE_VOLTAGE > 4.0)
