@@ -36,7 +36,7 @@
 #define CHILD_ID_SWITCH_ONE 0
 //  #define CHILD_ID_SWITCH_TWO 1
 //  #define CHILD_ID_SWITCH_THREE 2
-#define CHILD_ID_PD 3 //  photodiode
+//#define CHILD_ID_PD 3 //  photodiode
 #define CHILD_ID_PIR 4
 #define CHILD_ID_TEMP 5
 
@@ -131,7 +131,7 @@ int SWITCH_READING;
   bool SWITCH_THREE_LIGHT_STATE = LOW;
   bool SWITCH_TRHEE_STATE = false;
   float SWITCH_THREE_VOLTAGE;
-  
+
   MyMessage msgSWITCH_THREE(CHILD_ID_SWITCH_THREE, V_LIGHT);
 #endif
 
@@ -139,6 +139,7 @@ int SWITCH_READING;
 //  the duration that motion is detected we need this.
 #ifdef CHILD_ID_PIR
   bool PIR_PREVIOUS_STATE;
+  bool PIR_CURRENT_STATE;
   MyMessage msgPIR(CHILD_ID_PIR, V_TRIPPED);
 #endif
 
@@ -160,8 +161,8 @@ int SWITCH_READING;
 //  we need to make sure that the temperature sensor doesn't try take
 //  over while it's in use.
   bool RGB_IN_USE;
-  byte SWITCH_RGB_TIME_REMAINING;
-  unsigned int SWITCH_RGB_CYCLES = 2000;
+  byte SWITCH_RGB_CYCLES_REMAINING;
+  unsigned int SWITCH_RGB_CYCLES = 1500;
 
 //  We use the cycles counter because we only want to check the readings
 //  of the temperature sensor and the photodiode every 2000 cycles.
@@ -192,7 +193,7 @@ void present()
   #ifdef CHILD_ID_TEMP
     present(CHILD_ID_TEMP, S_TEMP);
   #endif
-  
+
   #ifdef CHILD_ID_SWITCH_ONE
     present(CHILD_ID_SWITCH_ONE, S_LIGHT);
   #endif
@@ -208,11 +209,11 @@ void present()
 
 
 void setup()
-{ 
+{
   pinMode(RGB_RED_PIN, OUTPUT);
   pinMode(RGB_GREEN_PIN, OUTPUT);
   pinMode(RGB_BLUE_PIN, OUTPUT);
-  
+
   #ifdef CHILD_ID_SWITCH_ONE
     pinMode(SWITCH_ONE, INPUT_PULLUP);
     pinMode(RELAY_ONE, OUTPUT);
@@ -247,11 +248,12 @@ void loop()
   #ifdef CHILD_ID_SWITCH_ONE
     SWITCH_READING = analogRead(SWITCH_ONE);
     SWITCH_ONE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
-    
+
     if(SWITCH_ONE_VOLTAGE < 4.0)
     {
       if(SWITCH_ONE_STATE == false)
       {
+        setLed(RGB_RED_PIN);
         RGB_IN_USE = true;
         SWITCH_ONE_STATE = true;
         if(SWITCH_ONE_LIGHT_STATE == HIGH)
@@ -264,7 +266,7 @@ void loop()
         }
         #ifdef MY_DEBUG
           Serial.println("Switching Relay ONE state, new state:");
-          Serial.println(SWITCH_TWO_LIGHT_STATE);
+          Serial.println(SWITCH_ONE_LIGHT_STATE);
         #endif
         digitalWrite(SWITCH_ONE, SWITCH_ONE_LIGHT_STATE);
       }
@@ -274,15 +276,16 @@ void loop()
       SWITCH_ONE_STATE = false;
     }
   #endif
-  
+
   #ifdef CHILD_ID_SWITCH_TWO
     SWITCH_READING = analogRead(SWITCH_TWO);
     SWITCH_TWO_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
-      
+
     if(SWITCH_TWO_VOLTAGE < 4.0)
     {
       if(SWITCH_TWO_STATE == false)
       {
+        setLed(RGB_RED_PIN);
         RGB_IN_USE = true;
         SWITCH_TWO_STATE = true;
         if(SWITCH_TWO_LIGHT_STATE == HIGH)
@@ -304,17 +307,18 @@ void loop()
     {
       SWITCH_TWO_STATE = false;
     }
-    
+
   #endif
-  
+
   #ifdef CHILD_ID_SWITCH_THREE
     SWITCH_READING = analogRead(SWITCH_THREE);
     SWITCH_THREE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
-    
+
     if(SWITCH_THREE_VOLTAGE < 4.0)
     {
       if(SWITCH_THREE_STATE == false)
       {
+        setLed(RGB_RED_PIN);
         RGB_IN_USE = true;
         SWITCH_THREE_STATE = true;
         if(SWITCH_THREE_LIGHT_STATE == HIGH)
@@ -337,7 +341,7 @@ void loop()
       SWITCH_THREE_STATE = false;
     }
   #endif
-  
+
   #if defined CHILD_ID_TEMP || defined CHILD_ID_PD
     if(CYCLES_COUNTER >= CYCLES_PER_READ)
     {
@@ -374,16 +378,58 @@ void loop()
       #endif
 
       #ifdef CHILD_ID_PD
-        
+          // Still to be added
       #endif
     }
     else
     {
       CYCLES_COUNTER++;
     }
-    
+  
   #endif
 
-
+  #ifdef CHILD_ID_PIR
+    if(PIR_PREVIOUS_STATE != HIGH)
+    {
+      PIR_CURRENT_STATE = digitalRead(PIR_PIN);
+      PIR_PREVIOUS_STATE = PIR_CURRENT_STATE;
+      if(PIR_CURRENT_STATE == HIGH)
+      {
+        send(msgPIR.set(PIR_CURRENT_STATE, 1));
+        #ifdef MY_DEBUG
+          Serial.println("PIR SENSOR TRIPPED:");
+          Serial.println(PIR_CURRENT_STATE);
+        #endif
+      }
+    }
+  #endif
   
+  if(RGB_IN_USE == true)
+  {
+    if(SWITCH_RGB_CYCLES_REMAINING >= SWITCH_RGB_CYCLES)
+    {
+      SWITCH_RGB_CYCLES_REMAINING = false;
+      RGB_IN_USE = false;
+    }
+    else
+    {
+      SWITCH_RGB_CYCLES_REMAINING++;
+    }
+  }
 }
+
+void setLed(int led_pin)
+{
+  if(RGB_IN_USE == true)
+  {
+    return;
+  }
+  else
+  {
+  digitalWrite(RGB_RED_PIN, LOW);
+  digitalWrite(RGB_GREEN_PIN, LOW);
+  digitalWrite(RGB_BLUE_PIN, LOW);
+  digitalWrite(led_pin, HIGH);
+  }
+}
+
