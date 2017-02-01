@@ -36,8 +36,8 @@
 #define CHILD_ID_SWITCH_ONE 0
 //  #define CHILD_ID_SWITCH_TWO 1
 //  #define CHILD_ID_SWITCH_THREE 2
-//#define CHILD_ID_PD 3 //  photodiode
-#define CHILD_ID_PIR 4
+//  #define CHILD_ID_PD 3 //  photodiode
+//  #define CHILD_ID_PIR 4
 #define CHILD_ID_TEMP 5
 
 
@@ -73,7 +73,7 @@
 #endif
 
 #ifdef CHILD_ID_TEMP
-  #define TEMP_PIN A5
+  #define TEMP_PIN A3
 #endif
 
 #define RGB_RED_PIN 3
@@ -97,7 +97,7 @@
 //-----------------------------------------------------------------*/
 
 #include <MySensors.h>
-
+#include <SPI.h>
 #ifdef CHILD_ID_TEMP
   #include <OneWire.h>
   #include <DallasTemperature.h>
@@ -245,6 +245,9 @@ void setup()
 
 void loop()
 {
+  #ifdef MY_DEBUG
+    Serial.println("SOMETHING HERE");
+  #endif
   #ifdef CHILD_ID_SWITCH_ONE
     SWITCH_READING = analogRead(SWITCH_ONE);
     SWITCH_ONE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
@@ -385,7 +388,7 @@ void loop()
     {
       CYCLES_COUNTER++;
     }
-  
+
   #endif
 
   #ifdef CHILD_ID_PIR
@@ -403,7 +406,7 @@ void loop()
       }
     }
   #endif
-  
+
   if(RGB_IN_USE == true)
   {
     if(SWITCH_RGB_CYCLES_REMAINING >= SWITCH_RGB_CYCLES)
@@ -426,10 +429,9 @@ void setLed(int led_pin)
   }
   else
   {
-  digitalWrite(RGB_RED_PIN, LOW);
-  digitalWrite(RGB_GREEN_PIN, LOW);
-  digitalWrite(RGB_BLUE_PIN, LOW);
-  digitalWrite(led_pin, HIGH);
+  digitalWrite(RGB_RED_PIN, HIGH);
+  digitalWrite(RGB_GREEN_PIN, HIGH);
+  digitalWrite(RGB_BLUE_PIN, HIGH);
+  digitalWrite(led_pin, LOW);
   }
 }
-
