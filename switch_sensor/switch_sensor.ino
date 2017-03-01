@@ -1,13 +1,11 @@
+
 /*
     Switch Sensor
     Arduino Pro Mini
     Owen Ling
     January 2017
-
     Switch Sensor communicating with serial gateway over NRF24 radio.
-
     See wiki / documentation for more information on pinouts
-
     Can handle:
     - 1 to 3 switches and relays
     - 1 temperature sensor (using a Dallas 18b20)
@@ -33,7 +31,7 @@
 #define MY_NODE_ID 1
 
 //  Set child ID
-#define CHILD_ID_SWITCH_ONE 0
+#define CHILD_ID_SWITCH_ONE 2
 //  #define CHILD_ID_SWITCH_TWO 1
 //  #define CHILD_ID_SWITCH_THREE 2
 //  #define CHILD_ID_PD 3 //  photodiode
@@ -44,7 +42,7 @@
 //  Connected sensors configuration
 
 //  If you're not using any switches / relays you can comment this line out.
-#define MY_REPEATER_FEATURE
+//#define MY_REPEATER_FEATURE
 
 //  Due to limited ports on the board, we can only use three
 //  switches here.
@@ -76,9 +74,9 @@
   #define TEMP_PIN A3
 #endif
 
-#define RGB_RED_PIN 3
+#define RGB_RED_PIN 6
 #define RGB_GREEN_PIN 5
-#define RGB_BLUE_PIN 6
+#define RGB_BLUE_PIN 3
 
 //  Force a reading update to be sent to the gateway after N amount
 //  of reads to prevent overly long time periods between updates from
@@ -142,10 +140,10 @@ int SWITCH_READING;
   bool PIR_CURRENT_STATE;
   MyMessage msgPIR(CHILD_ID_PIR, V_TRIPPED);
 #endif
-
+ 
 #ifdef CHILD_ID_PD
   bool PD_PREVIOUS_STATE;
-  MyMessage msgPD(CHILD_ID_PD, V_LIGHT_LEVEL);
+  MyMessage msgPD(CHILD_ID_PD, V_LIGHT);
 #endif
 
 #ifdef CHILD_ID_TEMP
@@ -160,9 +158,9 @@ int SWITCH_READING;
 //  Since the light switches will use the RGB light for a short period
 //  we need to make sure that the temperature sensor doesn't try take
 //  over while it's in use.
-  bool RGB_IN_USE;
-  byte SWITCH_RGB_CYCLES_REMAINING;
-  unsigned int SWITCH_RGB_CYCLES = 1500;
+  bool RGB_IN_USE = false;
+  unsigned int SWITCH_RGB_CYCLES_REMAINING = 0;
+  unsigned int SWITCH_RGB_CYCLES = 300;
 
 //  We use the cycles counter because we only want to check the readings
 //  of the temperature sensor and the photodiode every 2000 cycles.
@@ -179,6 +177,12 @@ int SWITCH_READING;
 // Functions
 //-----------------------------------------------------------------*/
 
+void before()
+{
+  // Startup up the OneWire library
+  sensors.begin();
+}
+
 //  Present sensors and switches to gateway - controller.
 void present()
 {
@@ -189,6 +193,7 @@ void present()
   #ifdef CHILD_ID_PD
     present(CHILD_ID_PD, S_LIGHT_LEVEL);
   #endif
+  
 
   #ifdef CHILD_ID_TEMP
     present(CHILD_ID_TEMP, S_TEMP);
@@ -210,13 +215,18 @@ void present()
 
 void setup()
 {
-  pinMode(RGB_RED_PIN, OUTPUT);
-  pinMode(RGB_GREEN_PIN, OUTPUT);
-  pinMode(RGB_BLUE_PIN, OUTPUT);
+  
+  #if defined RGB_RED_PIN || defined RGB_GREEN_PIN || defined RGB_BLUE_PIN
+    pinMode(RGB_RED_PIN, OUTPUT);
+    pinMode(RGB_GREEN_PIN, OUTPUT);
+    pinMode(RGB_BLUE_PIN, OUTPUT);
+  #endif
 
   #ifdef CHILD_ID_SWITCH_ONE
     pinMode(SWITCH_ONE, INPUT_PULLUP);
     pinMode(RELAY_ONE, OUTPUT);
+    SWITCH_ONE_LIGHT_STATE = loadState(CHILD_ID_SWITCH_ONE);
+    digitalWrite(RELAY_ONE, SWITCH_ONE_LIGHT_STATE);
   #endif
 
   #ifdef CHILD_ID_SWITCH_TWO
@@ -239,20 +249,23 @@ void setup()
 
   #ifdef CHILD_ID_TEMP
     pinMode(TEMP_PIN, INPUT);
+    sensors.setWaitForConversion(false);
   #endif
 }
 
 
 void loop()
 {
-  #ifdef MY_DEBUG
-    Serial.println("SOMETHING HERE");
-  #endif
+
   #ifdef CHILD_ID_SWITCH_ONE
     SWITCH_READING = analogRead(SWITCH_ONE);
     SWITCH_ONE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
+    #ifdef MY_DEBUG
+      Serial.println("DEBUG : SWITCH ONE VOLTAGE!");
+      Serial.println(SWITCH_ONE_VOLTAGE);
+    #endif
 
-    if(SWITCH_ONE_VOLTAGE < 4.0)
+    if(SWITCH_ONE_VOLTAGE < 1.0)
     {
       if(SWITCH_ONE_STATE == false)
       {
@@ -262,29 +275,37 @@ void loop()
         if(SWITCH_ONE_LIGHT_STATE == HIGH)
         {
           SWITCH_ONE_LIGHT_STATE = LOW;
+          send(msgSWITCH_ONE.set(SWITCH_ONE_LIGHT_STATE), true);
         }
         else
         {
           SWITCH_ONE_LIGHT_STATE = HIGH;
+          send(msgSWITCH_ONE.set(SWITCH_ONE_LIGHT_STATE), true);
         }
         #ifdef MY_DEBUG
           Serial.println("Switching Relay ONE state, new state:");
           Serial.println(SWITCH_ONE_LIGHT_STATE);
         #endif
-        digitalWrite(SWITCH_ONE, SWITCH_ONE_LIGHT_STATE);
+        saveState(CHILD_ID_SWITCH_ONE, SWITCH_ONE_LIGHT_STATE);
+        digitalWrite(RELAY_ONE, SWITCH_ONE_LIGHT_STATE);
       }
     }
-    if(SWITCH_ONE_VOLTAGE > 4.0)
+    if(SWITCH_ONE_VOLTAGE > 1.0)
     {
       SWITCH_ONE_STATE = false;
     }
   #endif
 
+
   #ifdef CHILD_ID_SWITCH_TWO
     SWITCH_READING = analogRead(SWITCH_TWO);
     SWITCH_TWO_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
+    #ifdef MY_DEBUG
+      Serial.println("DEBUG : SWITCH TWO VOLTAGE!");
+      Serial.println(SWITCH_TWO_VOLTAGE);
+    #endif
 
-    if(SWITCH_TWO_VOLTAGE < 4.0)
+    if(SWITCH_TWO_VOLTAGE < 1.0)
     {
       if(SWITCH_TWO_STATE == false)
       {
@@ -294,30 +315,37 @@ void loop()
         if(SWITCH_TWO_LIGHT_STATE == HIGH)
         {
           SWITCH_TWO_LIGHT_STATE = LOW;
+          send(msgSWITCH_TWO.set(SWITCH_TWO_LIGHT_STATE), true);
         }
         else
         {
           SWITCH_TWO_LIGHT_STATE = HIGH;
+          send(msgSWITCH_TWO.set(SWITCH_TWO_LIGHT_STATE), true);
         }
         #ifdef MY_DEBUG
           Serial.println("Switching Relay TWO state, new state:");
           Serial.println(SWITCH_TWO_LIGHT_STATE);
         #endif
-        digitalWrite(SWITCH_TWO, SWITCH_TWO_LIGHT_STATE);
+        saveState(CHILD_ID_SWITCH_TWO, SWITCH_TWO_LIGHT_STATE);
+        digitalWrite(RELAY_TWO, SWITCH_TWO_LIGHT_STATE);
       }
     }
-    if(SWITCH_TWO_VOLTAGE > 4.0)
+    if(SWITCH_TWO_VOLTAGE > 1.0)
     {
       SWITCH_TWO_STATE = false;
     }
-
   #endif
+
 
   #ifdef CHILD_ID_SWITCH_THREE
     SWITCH_READING = analogRead(SWITCH_THREE);
     SWITCH_THREE_VOLTAGE = SWITCH_READING * (5.0 / 1023.0);
+    #ifdef MY_DEBUG
+      Serial.println("DEBUG : SWITCH THREE VOLTAGE!");
+      Serial.println(SWITCH_THREE_VOLTAGE);
+    #endif
 
-    if(SWITCH_THREE_VOLTAGE < 4.0)
+    if(SWITCH_THREE_VOLTAGE < 1.0)
     {
       if(SWITCH_THREE_STATE == false)
       {
@@ -327,19 +355,22 @@ void loop()
         if(SWITCH_THREE_LIGHT_STATE == HIGH)
         {
           SWITCH_THREE_LIGHT_STATE = LOW;
+          send(msgSWITCH_THREE.set(SWITCH_THREE_LIGHT_STATE), true);
         }
         else
         {
           SWITCH_THREE_LIGHT_STATE = HIGH;
+          send(msgSWITCH_THREE.set(SWITCH_THREE_LIGHT_STATE), true);
         }
         #ifdef MY_DEBUG
           Serial.println("Switching Relay THREE state, new state:");
           Serial.println(SWITCH_THREE_LIGHT_STATE);
         #endif
-        digitalWrite(SWITCH_THREE, SWITCH_THREE_LIGHT_STATE);
+        saveState(CHILD_ID_SWITCH_THREE, SWITCH_THREE_LIGHT_STATE);
+        digitalWrite(RELAY_THREE, SWITCH_THREE_LIGHT_STATE);
       }
     }
-    if(SWITCH_THREE_VOLTAGE > 4.0)
+    if(SWITCH_THREE_VOLTAGE > 1.0)
     {
       SWITCH_THREE_STATE = false;
     }
@@ -351,16 +382,23 @@ void loop()
       CYCLES_COUNTER = 0;
       #ifdef CHILD_ID_TEMP
         sensors.requestTemperatures();
-        TEMP_CURRENT_VALUE = sensors.getTempCByIndex(0);
-        if(TEMP_CURRENT_VALUE != TEMP_PREVIOUS_VALUE || TEMP_COUNTS_SINCE_LAST_SEND == FORCE_UPDATE_AFTER_N_READS)
+        int16_t conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
+        wait(conversionTime);
+        TEMP_CURRENT_VALUE = static_cast<float>(static_cast<int>((getControllerConfig().isMetric?sensors.getTempCByIndex(0):sensors.getTempFByIndex(0)) * 10.)) / 10.;
+        if (TEMP_CURRENT_VALUE != -127.0 && TEMP_CURRENT_VALUE != 85.0)
         {
-          TEMP_PREVIOUS_VALUE = TEMP_CURRENT_VALUE;
-          TEMP_COUNTS_SINCE_LAST_SEND = 0;
-          send(msgTEMP.set(TEMP_CURRENT_VALUE, 1));
-          #ifdef MY_DEBUG
-            Serial.println("Temperature:");
-            Serial.println(TEMP_CURRENT_VALUE);
-          #endif
+          if(TEMP_CURRENT_VALUE != TEMP_PREVIOUS_VALUE || TEMP_COUNTS_SINCE_LAST_SEND == FORCE_UPDATE_AFTER_N_READS)
+          {
+            TEMP_PREVIOUS_VALUE = TEMP_CURRENT_VALUE;
+            TEMP_COUNTS_SINCE_LAST_SEND = 0;
+  
+              send(msgTEMP.set(TEMP_CURRENT_VALUE, 1));
+              #ifdef MY_DEBUG
+                Serial.println("Temperature:");
+                Serial.println(TEMP_CURRENT_VALUE);
+              #endif
+          
+          }
         }
         else
         {
@@ -368,15 +406,26 @@ void loop()
         }
         if(TEMP_CURRENT_VALUE >= 29.00)
         {
-          setLed(RGB_RED_PIN);
+          #ifdef RGB_RED_PIN
+            Serial.println("Setting RED");
+            Serial.println(CYCLES_COUNTER);
+            setLed(RGB_RED_PIN);
+          #endif
         }
-        else if(TEMP_CURRENT_VALUE >= 20.00)
+        else if(TEMP_CURRENT_VALUE >= 20.00 && TEMP_CURRENT_VALUE < 29.00)
         {
-          setLed(RGB_GREEN_PIN);
+          #ifdef RGB_GREEN_PIN
+            Serial.println("Setting GREEN");
+            
+            setLed(RGB_GREEN_PIN);
+          #endif
         }
-        else
+        else if(TEMP_CURRENT_VALUE < 20.00)
         {
-          setLed(RGB_BLUE_PIN);
+          #ifdef RGB_BLUE_PIN
+            Serial.println("Setting BLUE");
+            setLed(RGB_BLUE_PIN);
+          #endif
         }
       #endif
 
@@ -409,29 +458,42 @@ void loop()
 
   if(RGB_IN_USE == true)
   {
+    #ifdef MY_DEBUG
+      Serial.println("DEBUG : RGB IN USE!");
+    #endif
     if(SWITCH_RGB_CYCLES_REMAINING >= SWITCH_RGB_CYCLES)
     {
-      SWITCH_RGB_CYCLES_REMAINING = false;
+      #ifdef MY_DEBUG
+        Serial.println("DEBUG: RGB IS NO LONGER IN USE!");
+      #endif
+      SWITCH_RGB_CYCLES_REMAINING = 0;
       RGB_IN_USE = false;
     }
     else
     {
       SWITCH_RGB_CYCLES_REMAINING++;
+      #ifdef MY_DEBUG
+        Serial.println("DEBUG: RGB STILL IN USE!");
+        Serial.println(SWITCH_RGB_CYCLES_REMAINING);
+      #endif
     }
   }
 }
 
 void setLed(int led_pin)
 {
-  if(RGB_IN_USE == true)
-  {
-    return;
-  }
-  else
-  {
-  digitalWrite(RGB_RED_PIN, HIGH);
-  digitalWrite(RGB_GREEN_PIN, HIGH);
-  digitalWrite(RGB_BLUE_PIN, HIGH);
-  digitalWrite(led_pin, LOW);
-  }
+  #if defined RGB_RED_PIN || defined RGB_GREEN_PIN || defined RGB_BLUE_PIN
+    if(RGB_IN_USE == true)
+    {
+      return;
+    }
+    else
+    {
+    digitalWrite(RGB_RED_PIN, HIGH);
+    digitalWrite(RGB_GREEN_PIN, HIGH);
+    digitalWrite(RGB_BLUE_PIN, HIGH);
+    digitalWrite(led_pin, LOW);
+    }
+  #endif
 }
+
